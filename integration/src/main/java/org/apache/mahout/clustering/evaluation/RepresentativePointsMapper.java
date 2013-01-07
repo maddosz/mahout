@@ -41,7 +41,9 @@ public class RepresentativePointsMapper
   extends Mapper<IntWritable, WeightedVectorWritable, IntWritable, WeightedVectorWritable> {
 
   private Map<Integer, List<VectorWritable>> representativePoints;
+
   private final Map<Integer, WeightedVectorWritable> mostDistantPoints = Maps.newHashMap();
+
   private DistanceMeasure measure = new EuclideanDistanceMeasure();
 
   @Override
@@ -68,10 +70,8 @@ public class RepresentativePointsMapper
 
     List<VectorWritable> repPoints = representativePoints.get(key);
     double totalDistance = 0.0;
-    if (repPoints != null) {
-      for (VectorWritable refPoint : repPoints) {
-        totalDistance += measure.distance(refPoint.get(), point.getVector());
-      }
+    for (VectorWritable refPoint : repPoints) {
+      totalDistance += measure.distance(refPoint.get(), point.getVector());
     }
     if (currentMDP == null || currentMDP.getWeight() < totalDistance) {
       mostDistantPoints.put(key, new WeightedVectorWritable(totalDistance, point.getVector().clone()));

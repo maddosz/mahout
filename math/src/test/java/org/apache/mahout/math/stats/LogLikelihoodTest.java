@@ -147,9 +147,10 @@ public final class LogLikelihoodTest extends MahoutTestCase {
     r = LogLikelihood.compareFrequencies(w1, w2, 40, 1);
 
     // only the boosted items should make the cut
-    assertEquals(2, r.size());
+    assertEquals(3, r.size());
     assertEquals(7, (int) r.get(0).getItem());
-    assertEquals(6, (int) r.get(1).getItem());
+    assertEquals(5, (int) r.get(1).getItem());
+    assertEquals(6, (int) r.get(2).getItem());
 
     r = LogLikelihood.compareFrequencies(w1, w2, 1000, -100);
     Multiset<Integer> k = HashMultiset.create();
@@ -163,7 +164,8 @@ public final class LogLikelihoodTest extends MahoutTestCase {
     // all values that had non-zero counts in larger set should have result scores
     assertEquals(w2.elementSet().size(), r.size());
     assertEquals(7, (int) r.get(0).getItem());
-    assertEquals(6, (int) r.get(1).getItem());
+    assertEquals(5, (int) r.get(1).getItem());
+    assertEquals(6, (int) r.get(2).getItem());
     
     // the last item should definitely have negative score
     assertTrue(r.get(r.size() - 1).getScore() < 0);

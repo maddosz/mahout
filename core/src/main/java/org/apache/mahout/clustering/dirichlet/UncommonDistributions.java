@@ -17,18 +17,18 @@
 
 package org.apache.mahout.clustering.dirichlet;
 
-import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.commons.math3.distribution.RealDistribution;
+import java.util.Random;
+
 import org.apache.mahout.common.RandomUtils;
-import org.apache.mahout.common.RandomWrapper;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
+import org.uncommons.maths.random.GaussianGenerator;
 
 public final class UncommonDistributions {
   
   public static final double SQRT2PI = Math.sqrt(2.0 * Math.PI);
   
-  private static final RandomWrapper RANDOM = RandomUtils.getRandom();
+  private static final Random RANDOM = RandomUtils.getRandom();
   
   private UncommonDistributions() {
   }
@@ -143,11 +143,8 @@ public final class UncommonDistributions {
    * @return a double sample
    */
   public static double rNorm(double mean, double sd) {
-    RealDistribution dist = new NormalDistribution(RANDOM.getRandomGenerator(),
-                                                   mean,
-                                                   sd,
-                                                   NormalDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY);
-    return dist.sample();
+    GaussianGenerator dist = new GaussianGenerator(mean, sd, RANDOM);
+    return dist.nextValue();
   }
   
   /**

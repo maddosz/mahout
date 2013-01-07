@@ -25,8 +25,7 @@ import org.junit.Test;
 
 import java.util.Random;
 
-public final class AucTest extends MahoutTestCase {
-
+public class AucTest extends MahoutTestCase{
   @Test
   public void testAuc() {
     Auc auc = new Auc();
@@ -79,8 +78,8 @@ public final class AucTest extends MahoutTestCase {
     }
     Matrix m = auc.entropy();
     assertEquals(-0.35, m.get(0, 0), 0.02);
-    assertEquals(-2.36, m.get(0, 1), 0.02);
-    assertEquals(-2.36, m.get(1, 0), 0.02);
+    assertEquals(-2.34, m.get(0, 1), 0.02);
+    assertEquals(-2.34, m.get(1, 0), 0.02);
     assertEquals(-0.35, m.get(1, 1), 0.02);
   }
 }
