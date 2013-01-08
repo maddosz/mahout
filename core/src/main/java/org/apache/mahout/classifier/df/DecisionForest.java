@@ -44,7 +44,7 @@ public class DecisionForest implements Writable {
   
   private final List<Node> trees;
   
-  private DecisionForest() {
+  public DecisionForest() {
     trees = Lists.newArrayList();
   }
   
