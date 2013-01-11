@@ -40,8 +40,9 @@ public final class TreeVisualizer {
   }
 
   private static String doubleToString(double value) {
-    DecimalFormat df = new DecimalFormat("0.##");
-    return df.format(value);
+    //DecimalFormat df = new DecimalFormat("0.##");
+    //return df.format(value);
+    return new Double(value).toString();
   }
 
   private static String toStringNode(Node node,
@@ -65,11 +66,13 @@ public final class TreeVisualizer {
           for (int j = 0; j < layer; j++) {
             buff.append("|   ");
           }
-          buff.append(attrNames == null ? attr : attrNames[attr]).append(" = ").append(attrValues[attr][i]);
-          int index = ArrayUtils.indexOf(values, i);
-          if (index >= 0) {
-            buff.append(toStringNode(childs[index], dataset, attrNames, fields, layer + 1));
-          }
+          buff.append(attrNames == null ? attr : attrNames[attr]).append(" = ").append(attrValues[attr][(int)values[i]]);
+          //int index = ArrayUtils.indexOf(values, i);
+          //if (index >= 0) {
+          //  buff.append(toStringNode(childs[index], dataset, attrNames, fields, layer + 1));
+          //}
+          buff.append(toStringNode(childs[i], dataset, attrNames, fields, layer + 1));
+          
         }
       } else if (node instanceof NumericalNode) {
         NumericalNode nnode = (NumericalNode) node;
@@ -96,6 +99,120 @@ public final class TreeVisualizer {
           buff.append(" : ").append(doubleToString(label));
         } else {
           buff.append(" : ").append(dataset.getLabelString((int) label));
+        }
+      }
+
+    } catch (IllegalAccessException iae) {
+      throw new IllegalStateException(iae);
+    }
+
+    return buff.toString();
+  }
+  
+  
+  
+  private static String toDotNode(Node node,
+                                  Dataset dataset,
+                                  String[] attrNames,
+                                  Map<String, Field> fields,
+                                  String parent,
+                                  int level) {
+
+    StringBuilder buff = new StringBuilder();
+
+    try {
+      String name = "";
+      String value = "";
+      String path = "";
+      if (node instanceof CategoricalNode) {
+        CategoricalNode cnode = (CategoricalNode) node;
+        int attr = (Integer) fields.get("CategoricalNode.attr").get(cnode);
+        double[] values = (double[]) fields.get("CategoricalNode.values").get(
+            cnode);
+        Node[] childs = (Node[]) fields.get("CategoricalNode.childs")
+            .get(cnode);
+        String[][] attrValues = (String[][]) fields.get("Dataset.values").get(
+            dataset);
+        for (int i = 0; i < childs.length; i++) {
+          name = (String)(attrNames == null ? attr : attrNames[attr]); 
+          value = (String)(attrValues[attr][(int) values[i]]);
+          path = parent + "_" + name + "(" + value +")";
+          
+          buff.append(";" + '\n');
+          
+          //create subgraph
+          for (int l = 0; l < level; l++) buff.append("  ");
+          buff.append("subgraph {" + '\n');
+          
+          //write label
+          for (int l = 0; l < level; l++) buff.append("  ");
+          buff.append("  \"" + path + "\"" + " [label=\"" + name + "(" + value +")" + "\"];" + '\n');
+          
+          //create edge
+          for (int l = 0; l < level; l++) buff.append("  ");
+          buff.append("  \"" + parent + "\" -> \"" + path + "\"");
+          
+       
+          buff.append(toDotNode(childs[i], dataset, attrNames, fields, path, level + 1));
+          for (int l = 0; l < level; l++) buff.append("  ");
+          buff.append("}");
+        }
+      } else if (node instanceof NumericalNode) {
+        NumericalNode nnode = (NumericalNode) node;
+        int attr = (Integer) fields.get("NumericalNode.attr").get(nnode);
+        double split = (Double) fields.get("NumericalNode.split").get(nnode);
+        Node loChild = (Node) fields.get("NumericalNode.loChild").get(nnode);
+        Node hiChild = (Node) fields.get("NumericalNode.hiChild").get(nnode);
+        buff.append(";" + '\n');
+
+        name = (String)(attrNames == null ? attr : attrNames[attr]); 
+        value = (String)doubleToString(split);
+        path = parent + "_" + name;
+        
+        //case <
+        //create subgraph
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("subgraph {" + '\n');
+        
+        //write label
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("  \"" + path + "<" + value + "\"" + " [label=\"" + name + " < " + value + "\"];" + '\n');
+        
+        //create edge
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("  \"" + parent + "\" -> \"" + path + "<" + value + "\"");
+        
+        buff.append(toDotNode(loChild, dataset, attrNames, fields, path + "<" + value, level + 1));
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("}" + '\n');
+        
+        //case >=
+        //create subgraph
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("subgraph {" + '\n');
+        
+        //write label
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("  \"" + path + ">=" + value + "\"" + " [label=\"" + name + " >= " + value + "\"];" + '\n');
+        
+        //create edge
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("  \"" + parent + "\" -> \"" + path + ">=" + value + "\"");
+        
+        buff.append(toDotNode(loChild, dataset, attrNames, fields, path + ">=" + value, level + 1));
+        for (int l = 0; l < level; l++) buff.append("  ");
+        buff.append("}");
+      } else if (node instanceof Leaf) {
+        Leaf leaf = (Leaf) node;
+        double label = (Double) fields.get("Leaf.label").get(leaf);
+        if (dataset.isNumerical(dataset.getLabelId())) {
+          buff.append(" -> ").append("\"" + parent + "_" + doubleToString(label) + "\";" + '\n');
+          for (int l = 0; l < level; l++) buff.append("  ");
+          buff.append("\"" + parent + "_" + doubleToString(label) + "\" [shape=box, color=fuchsia, fillcolor=fuchsia, label=\"" + doubleToString(label) + "\"];" + '\n');
+        } else {
+          buff.append(" -> ").append("\"" + parent + "_" + dataset.getLabelString((int) label) + "\";" + '\n');
+          for (int l = 0; l < level; l++) buff.append("  ");
+          buff.append("\"" + parent + "_" + doubleToString(label) + "\" [shape=box, color=fuchsia, fillcolor=fuchsia, label=\"" + doubleToString(label) + "\"];" + '\n');
         }
       }
 
@@ -153,6 +270,17 @@ public final class TreeVisualizer {
    */
   public static String toString(Node tree, Dataset dataset, String[] attrNames) {
     return toStringNode(tree, dataset, attrNames, getReflectMap(), 0);
+  }
+  
+  /**
+   * Decision tree to Dot
+   * @param tree
+   *          Node of tree
+   * @param attrNames
+   *          attribute names
+   */
+  public static String toDot(Node tree, Dataset dataset, String[] attrNames) {
+    return toDotNode(tree, dataset, attrNames, getReflectMap(), "ROOT", 1);
   }
 
   /**

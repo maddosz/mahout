@@ -91,6 +91,54 @@ public final class ForestVisualizer {
     return toString(forest, dataset, attrNames);
   }
 
+  
+  
+  public static String toDot(DecisionForest forest, Dataset dataset, String[] attrNames) {
+
+    List<Node> trees;
+    try {
+      Method getTrees = forest.getClass().getDeclaredMethod("getTrees");
+      getTrees.setAccessible(true);
+      trees = (List<Node>) getTrees.invoke(forest);
+    } catch (IllegalAccessException e) {
+      throw new IllegalStateException(e);
+    } catch (InvocationTargetException e) {
+      throw new IllegalStateException(e);
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException(e);
+    }
+
+    int cnt = 1;
+    StringBuilder buff = new StringBuilder();
+    for (Node tree : trees) {
+      buff.append("digraph Tree").append(cnt).append(" {" + '\n' + "\"ROOT\" [label=\"Tree" + cnt + "\"];" + '\n' + "ranksep=3; node [color=deepskyblue, fillcolor=deepskyblue, style=filled, fontsize=8]");
+      buff.append(TreeVisualizer.toDot(tree, dataset, attrNames));
+      buff.append('\n' + "}" + '\n' + '\n');
+      cnt++;
+    }
+    return buff.toString();
+  }
+
+  /**
+   * Decision Forest to String
+   * @param forestPath
+   *          path to the Decision Forest
+   * @param datasetPath
+   *          dataset path
+   * @param attrNames
+   *          attribute names
+   */
+  public static String toDot(String forestPath, String datasetPath, String[] attrNames) throws IOException {
+    Configuration conf = new Configuration();
+    DecisionForest forest = DecisionForest.load(conf, new Path(forestPath));
+    Dataset dataset = Dataset.load(conf, new Path(datasetPath));
+    return toDot(forest, dataset, attrNames);
+  }
+  
+  
+  
+  
+  
   /**
    * Print Decision Forest
    * @param forestPath
@@ -102,6 +150,19 @@ public final class ForestVisualizer {
    */
   public static void print(String forestPath, String datasetPath, String[] attrNames) throws IOException {
     System.out.println(toString(forestPath, datasetPath, attrNames));
+  }
+  
+  /**
+   * Print Decision Forest as graphviz DOT
+   * @param forestPath
+   *          path to the Decision Forest
+   * @param datasetPath
+   *          dataset path
+   * @param attrNames
+   *          attribute names
+   */
+  public static void printDot(String forestPath, String datasetPath, String[] attrNames) throws IOException {
+    System.out.println(toDot(forestPath, datasetPath, attrNames));
   }
   
   public static void main(String[] args) {
@@ -121,18 +182,21 @@ public final class ForestVisualizer {
       .withArgument(abuilder.withName("names").withMinimum(1).create())
       .withDescription("Optional, Attribute names").create();
 
+    Option dotOpt = obuilder.withLongName("dotoutput").withShortName("dot")
+        .withDescription("Create DOT output").create();
+
     Option helpOpt = obuilder.withLongName("help").withShortName("h")
       .withDescription("Print out help").create();
-  
+      
     Group group = gbuilder.withName("Options").withOption(datasetOpt).withOption(modelOpt)
-      .withOption(attrNamesOpt).withOption(helpOpt).create();
+      .withOption(attrNamesOpt).withOption(dotOpt).withOption(helpOpt).create();
   
     try {
       Parser parser = new Parser();
       parser.setGroup(group);
       CommandLine cmdLine = parser.parse(args);
       
-      if (cmdLine.hasOption("help")) {
+      if (cmdLine.hasOption(helpOpt)) {
         CommandLineUtil.printHelp(group);
         return;
       }
@@ -148,7 +212,11 @@ public final class ForestVisualizer {
         }
       }
       
-      print(modelName, datasetName, attrNames);
+      if (cmdLine.hasOption(dotOpt)) 
+        printDot(modelName, datasetName, attrNames);
+      else
+        print(modelName, datasetName, attrNames);
+   
     } catch (Exception e) {
       log.error("Exception", e);
       CommandLineUtil.printHelp(group);
